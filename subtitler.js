@@ -28,7 +28,7 @@ const optionDefinitions = [
 
 const options = commandLineArgs(optionDefinitions)
 
-if (options.help) {
+if (options.help || Object.keys(options).length < 1) {
   const usage = commandLineUsage([
     {
       header: 'Subtitler',
@@ -43,36 +43,35 @@ if (options.help) {
     }
   ])
   console.log(usage)
-} else {
-  if (options.src) {
-    const src = options.src[0];
+} else if (options.src) {
+  const src = options.src[0];
+  if (src) {
+    const text = options.text || '...';
     const dest = src + '.srt';
-    if (src) {
-      const creationTime = fs.statSync(src).birthtimeMs;
-      const nowTime = (new Date()).getTime();
-      const nowMs = nowTime - creationTime;
+    const creationTime = fs.statSync(src).birthtimeMs;
+    const nowTime = (new Date()).getTime();
+    const nowMs = nowTime - creationTime;
 
-      const list = []
+    const list = [{
+      type: 'cue',
+      data: {
+        start: nowMs,
+        end: nowMs + 5000,
+        text: text
+      }
+    }];
 
-      list.push({
-        type: 'cue',
-        data: {
-          start: nowMs,
-          end: nowMs + 5000,
-          text: options.text
+    const data = stringifySync(list, { format: 'SRT' }) + "\n";
+
+    fs.appendFile(dest, data, (err) => {
+        if (err) {
+            throw err;
         }
-      })
-
-      const data = stringifySync(list, { format: 'SRT' }) + "\n";
-
-      fs.appendFile(src+'.srt', data, (err) => {
-          if (err) {
-              throw err;
-          }
-          console.log("File is updated.");
-      });
-    }
+        console.log(`Subtitle file has been updated: ${dest}`);
+    });
   } else {
-    console.log(options)
+    console.error(`Source file invalid: ${src}`);
   }
+} else {
+  console.log(options)
 }
